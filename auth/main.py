@@ -1,10 +1,12 @@
+from typing import Annotated
 from datetime import datetime, timedelta
 import uuid
 
 import jwt
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.encoders import jsonable_encoder
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 
 from sqlalchemy import create_engine
@@ -15,13 +17,15 @@ from sqlalchemy.orm import Session
 
 # PGPASSWORD=ZAHkX5jKHY7JRkVbB19t psql -h containers-us-west-175.railway.app -U postgres -p 6034 -d railway
 
-KEY="asdfjlkaasdf"
+SECRET_KEY="asdfjlkaasdf"
+ALGORITHM="HS256"
 
 DATABASE_URL = "postgresql+psycopg2://postgres:ZAHkX5jKHY7JRkVbB19t@containers-us-west-175.railway.app:6034/railway"
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 app = FastAPI()
 
 # Dependency
@@ -59,6 +63,9 @@ def db_get_customers(db: Session, skip: int = 0, limit: int = 100):
 def db_get_customer(db: Session, phone_number: int):
     return db.query(Customer).filter(Customer.phone_number == phone_number).first()
 
+def db_get_user(db: Session, uuid: UUID):
+    return db.query(Customer).filter(Customer.id == uuid).first()
+
 def db_create_user(db: Session, customer: Customer):
     db.add(customer)
     db.commit()
@@ -81,12 +88,41 @@ def login(reg: UserBase, db: Session = Depends(get_db)):
     if db_customer.password.__str__() != reg.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     encoded = jwt.encode(
-        {"exp": datetime.utcnow() + timedelta(seconds=30), "role": "customer"},
-        KEY, algorithm="HS256"
+        {"exp": datetime.utcnow() + timedelta(seconds=1800), "role": "customer", "uuid": str(db_customer.id)},
+        SECRET_KEY, algorithm=ALGORITHM
     )
     return jsonable_encoder(encoded)
 
 
-@app.get("/customers")
-def get_customers():
-    pass
+@app.get("/me")
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],  db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        customer_uuid: UUID = payload.get("uuid")
+        if customer_uuid is None:
+            raise credentials_exception
+    except Exception:
+        raise credentials_exception
+    user = db_get_user(db, customer_uuid)
+    if user is None:
+        raise credentials_exception
+    return user
+
+@app.get("/verify-token")
+def verify_token(token: Annotated[str, Depends(oauth2_scheme)],  db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        customer_uuid: UUID = payload.get("uuid")
+        if customer_uuid is None:
+            return {"valid": False}
+    except Exception:
+        return {"valid": False}
+    user = db_get_user(db, customer_uuid)
+    if user is None:
+        return {"valid": False}
+    return {"valid": True}
