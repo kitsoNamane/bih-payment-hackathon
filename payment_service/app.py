@@ -1,8 +1,6 @@
 import datetime
 from hashlib import md5
-from flask import Flask
-import urllib.parse
-from urllib import request, parse
+from flask import Flask, request
 import re
 
 import requests
@@ -13,26 +11,50 @@ def append_base_url_to_html(html_string, base_url):
     modified_html = re.sub(r"<head[^>]*>", lambda m: m.group() + base_tag, html_string)
     return modified_html
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def initiatePay():
     url = "https://secure.paygate.co.za/payweb3/initiate.trans"
 
+    encryptionKey = "secret"
+
+    PAYGATE_ID = "10011072130"
+    # extract the reference from the request
+    REFERENCE = request.args.get("reference")
+    AMOUNT = request.args.get("amount")
+    SERVICEID = request.args.get("serviceid")
+    EMAIL = request.args.get("email")
+
+    # generate a unique transaction reference
+    TRANSACTION_DATE = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    LOCALE = "en-za"
+    COUNTRY = "ZAF"
+    
+    # generate reference using the reference and the transaction date + serviceid
+    REFERENCE = f"{REFERENCE}_{TRANSACTION_DATE}_{SERVICEID}"
+
+
+
+
     payload = {'PAYGATE_ID': '10011072130',
-    'REFERENCE': 'pgtest_123456789',
-    'AMOUNT': '3299',
-    'CURRENCY': 'ZAR',
+    'REFERENCE': REFERENCE,
+    'AMOUNT': AMOUNT,
+    'CURRENCY': 'BWP',
     'RETURN_URL': 'https://my.return.url/page',
-    'TRANSACTION_DATE': '2018-01-01 12:00:00',
-    'LOCALE': 'en-za',
-    'COUNTRY': 'ZAF',
-    'EMAIL': 'customer@paygate.co.za',
-    'CHECKSUM': '59229d9c6cb336ae4bd287c87e6f0220'}
-    files=[
+    'TRANSACTION_DATE': TRANSACTION_DATE,
+    'LOCALE': 'en-tn',
+    'COUNTRY': 'BWA',
+    'EMAIL': EMAIL,
+    }
 
-    ]
+    # data_string 
+    data_string = ''.join(str(value) for value in payload.values())
+    # generate the checksum
+    CHECKSUM = md5((data_string+encryptionKey).encode()).hexdigest()
 
+    payload["CHECKSUM"] = CHECKSUM
+    
     try: 
-        response = requests.request("POST", url, data=payload, files=files)
+        response = requests.request("POST", url, data=payload,)
         payload=response.text
         pairs = payload.split("&")
         map = {}
