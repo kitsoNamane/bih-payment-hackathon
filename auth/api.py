@@ -9,24 +9,10 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
-
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import UUID, Column, Integer, String
 from sqlalchemy.orm import Session
-from sqlalchemy.types import Enum
+from sqlalchemy import UUID
+from db import ALGORITHM, SECRET_KEY, SessionLocal, User, db_create_user, db_get_user, db_get_user_by_email, db_get_user_by_phone
 
-# PGPASSWORD=ZAHkX5jKHY7JRkVbB19t psql -h containers-us-west-175.railway.app -U postgres -p 6034 -d railway
-
-SECRET_KEY="asdfjlkaasdf"
-ALGORITHM="HS256"
-
-DATABASE_URL = "postgresql+psycopg2://postgres:ZAHkX5jKHY7JRkVbB19t@containers-us-west-175.railway.app:6034/railway"
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 app = FastAPI()
 
@@ -37,16 +23,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(UUID, primary_key=True, index=True)
-    phone_number = Column(Integer, unique=True, index=True)
-    national_id = Column(Integer, unique=True, index=True)
-    password = Column(String)
-    email = Column(String, unique=True, index=True)
-    user_type = Column(Enum("customer", "admin", "super_admin", name="user_type"), default="customer")
 
 class CustomerBase(BaseModel):
     phone_number: int
@@ -67,24 +43,6 @@ class CustomerRegistration(CustomerBase):
 
     class Config:
         orm_mode = True
-
-def db_get_users(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(User).offset(skip).limit(limit).all()
-
-def db_get_user_by_phone(db: Session, phone_number: int):
-    return db.query(User).filter(User.phone_number == phone_number).first()
-
-def db_get_user_by_email(db: Session, email: str):
-    return db.query(User).filter(User.email == email.lower()).first()
-
-def db_get_user(db: Session, uuid: UUID):
-    return db.query(User).filter(User.id == uuid).first()
-
-def db_create_user(db: Session, user: User):
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
 
 @app.post("/customer/registration")
 def customer_registration(reg: CustomerRegistration, db: Session = Depends(get_db)):
@@ -127,8 +85,6 @@ def customer_login(reg: CustomerBase, db: Session = Depends(get_db)):
         SECRET_KEY, algorithm=ALGORITHM
     )
     return jsonable_encoder(encoded)
-
-
 
 @app.get("/me")
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],  db: Session = Depends(get_db)):
