@@ -1,2 +1,7 @@
 # Environments
 .venv
+# Editor
+.vscode
+
+# Python
+__pycache__
