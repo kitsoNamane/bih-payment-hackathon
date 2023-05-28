@@ -1,10 +1,9 @@
 from sqlalchemy import UUID, Boolean, Column, Integer, String
-from sqlalchemy.types import Enum
+from sqlalchemy.types import DateTime, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import Session
-from datetime import datetime  #
 
 SECRET_KEY = "asdfjlkaasdf"
 ALGORITHM = "HS256"
@@ -23,10 +22,10 @@ class Payment(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     service = Column(String, index=True)
     reference = Column(String, unique=True, index=True)
-    due_date = Column(datetime)
+    due_date = Column(DateTime)
     paid_status = Column(Boolean, index=True, default=False)
     payer_id = Column(Integer, unique=False, index=True)
-    created_at = Column(datetime)
+    created_at = Column(DateTime)
 
 
 def create_payment(db: Session, payment: Payment):
