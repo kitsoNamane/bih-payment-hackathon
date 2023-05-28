@@ -1,4 +1,3 @@
-from enum import unique
 from typing import Annotated
 from datetime import datetime, timedelta
 import uuid
@@ -8,10 +7,11 @@ import jwt
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import UUID
 from db import ALGORITHM, SECRET_KEY, SessionLocal, User, db_create_user, db_get_user, db_get_user_by_email, db_get_user_by_phone
+from notifications import create_sms_client, send_top, whitelist_phone_number
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 app = FastAPI()
@@ -23,6 +23,8 @@ def get_db():
         yield db
     finally:
         db.close()
+
+sms_client = create_sms_client()
 
 class CustomerBase(BaseModel):
     phone_number: int
@@ -43,6 +45,24 @@ class CustomerRegistration(CustomerBase):
 
     class Config:
         orm_mode = True
+
+@app.post("/otp/send/{phone_number}")
+def generate_otp(phone_number: int):
+    try: 
+        send_top(sms_client, phone_number)
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=400, detail="failed to send OTP")
+    return {"message": "OTP sent successfully"}
+
+@app.post("/otp/whitelist_phone_number/{phone_number}")
+def whitelist_otp_phone_number(phone_number: int):
+    try: 
+        whitelist_phone_number(sms_client, phone_number)
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=400, detail="failed to whitelist phone number")
+    return {"message": "successfully whitelisted phone number"}
 
 @app.post("/customer/registration")
 def customer_registration(reg: CustomerRegistration, db: Session = Depends(get_db)):
