@@ -1,3 +1,4 @@
+from enum import unique
 from typing import Annotated
 from datetime import datetime, timedelta
 import uuid
@@ -7,13 +8,14 @@ import jwt
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import UUID, Column, Integer, String
 from sqlalchemy.orm import Session
+from sqlalchemy.types import Enum
 
 # PGPASSWORD=ZAHkX5jKHY7JRkVbB19t psql -h containers-us-west-175.railway.app -U postgres -p 6034 -d railway
 
@@ -36,62 +38,96 @@ def get_db():
     finally:
         db.close()
 
-class Customer(Base):
-    __tablename__ = "customer"
+class User(Base):
+    __tablename__ = "users"
 
     id = Column(UUID, primary_key=True, index=True)
     phone_number = Column(Integer, unique=True, index=True)
     national_id = Column(Integer, unique=True, index=True)
     password = Column(String)
+    email = Column(String, unique=True, index=True)
+    user_type = Column(Enum("customer", "admin", "super_admin", name="user_type"), default="customer")
 
-class UserBase(BaseModel):
+class CustomerBase(BaseModel):
     phone_number: int
     password: str
 
     class Config:
         orm_mode = True
 
-class Registration(UserBase):
+class AdminBase(BaseModel):
+    email: str
+    password: str
+
+    class Config:
+        orm_mode = True
+
+class CustomerRegistration(CustomerBase):
     national_id: int
 
     class Config:
         orm_mode = True
 
-def db_get_customers(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Customer).offset(skip).limit(limit).all()
+def db_get_users(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(User).offset(skip).limit(limit).all()
 
-def db_get_customer(db: Session, phone_number: int):
-    return db.query(Customer).filter(Customer.phone_number == phone_number).first()
+def db_get_user_by_phone(db: Session, phone_number: int):
+    return db.query(User).filter(User.phone_number == phone_number).first()
+
+def db_get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email.lower()).first()
 
 def db_get_user(db: Session, uuid: UUID):
-    return db.query(Customer).filter(Customer.id == uuid).first()
+    return db.query(User).filter(User.id == uuid).first()
 
-def db_create_user(db: Session, customer: Customer):
-    db.add(customer)
+def db_create_user(db: Session, user: User):
+    db.add(user)
     db.commit()
-    db.refresh(customer)
-    return customer
+    db.refresh(user)
+    return user
 
-@app.post("/registration")
-def registration(reg: Registration, db: Session = Depends(get_db)):
-    db_customer = db_get_customer(db=db, phone_number=reg.phone_number)
-    if db_customer:
-        raise HTTPException(status_code=400, detail="customer already registered")
-    customer = Customer(id=uuid.uuid4(), phone_number=reg.phone_number, national_id=reg.national_id, password=reg.password)
-    return db_create_user(db=db, customer=customer)
+@app.post("/customer/registration")
+def customer_registration(reg: CustomerRegistration, db: Session = Depends(get_db)):
+    db_user = db_get_user_by_phone(db=db, phone_number=reg.phone_number)
+    if db_user:
+        raise HTTPException(status_code=400, detail="user already registered")
+    user = User(id=uuid.uuid4(), email=reg.phone_number, national_id=reg.national_id, password=reg.password)
+    return db_create_user(db=db, user=user)
 
-@app.post("/login")
-def login(reg: UserBase, db: Session = Depends(get_db)):
-    db_customer = db_get_customer(db=db, phone_number=reg.phone_number)
-    if db_customer is None:
+@app.post("/admin/registration")
+def admin_registration(reg: AdminBase, db: Session = Depends(get_db)):
+    db_user = db_get_user_by_email(db=db, email=reg.email.__str__().lower())
+    if db_user:
+        raise HTTPException(status_code=400, detail="user already registered")
+    user = User(id=uuid.uuid4(), email=reg.email.__str__().lower(), password=reg.password)
+    return db_create_user(db=db, user=user)
+
+@app.post("/admin/login")
+def admin_login(reg: AdminBase, db: Session = Depends(get_db)):
+    db_user = db_get_user_by_email(db=db, email=reg.email.__str__().lower())
+    if db_user is None:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    if db_customer.password.__str__() != reg.password:
+    if db_user.password.__str__() != reg.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     encoded = jwt.encode(
-        {"exp": datetime.utcnow() + timedelta(seconds=1800), "role": "customer", "uuid": str(db_customer.id)},
+        {"exp": datetime.utcnow() + timedelta(seconds=1800), "role": db_user.user_type.__str__(), "uuid": str(db_user.id)},
         SECRET_KEY, algorithm=ALGORITHM
     )
     return jsonable_encoder(encoded)
+
+@app.post("/customer/login")
+def customer_login(reg: CustomerBase, db: Session = Depends(get_db)):
+    db_user = db_get_user_by_phone(db=db, phone_number=reg.phone_number)
+    if db_user is None:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if db_user.password.__str__() != reg.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    encoded = jwt.encode(
+        {"exp": datetime.utcnow() + timedelta(seconds=1800), "role": db_user.user_type.__str__(), "uuid": str(db_user.id)},
+        SECRET_KEY, algorithm=ALGORITHM
+    )
+    return jsonable_encoder(encoded)
+
 
 
 @app.get("/me")
@@ -103,12 +139,12 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],  db: Session
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        customer_uuid: UUID = payload.get("uuid")
-        if customer_uuid is None:
+        user_uuid: UUID = payload.get("uuid")
+        if user_uuid is None:
             raise credentials_exception
     except Exception:
         raise credentials_exception
-    user = db_get_user(db, customer_uuid)
+    user = db_get_user(db, user_uuid)
     if user is None:
         raise credentials_exception
     return user
@@ -117,12 +153,12 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],  db: Session
 def verify_token(token: Annotated[str, Depends(oauth2_scheme)],  db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        customer_uuid: UUID = payload.get("uuid")
-        if customer_uuid is None:
+        user_uuid: UUID = payload.get("uuid")
+        if user_uuid is None:
             return {"valid": False}
     except Exception:
         return {"valid": False}
-    user = db_get_user(db, customer_uuid)
+    user = db_get_user(db, user_uuid)
     if user is None:
         return {"valid": False}
     return {"valid": True}
