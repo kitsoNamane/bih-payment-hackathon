@@ -16,6 +16,7 @@ from notifications import create_sms_client, send_top, whitelist_phone_number
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 app = FastAPI()
 
+
 # Dependency
 def get_db():
     db = SessionLocal()
@@ -33,12 +34,14 @@ class CustomerBase(BaseModel):
     class Config:
         orm_mode = True
 
+
 class AdminBase(BaseModel):
     email: str
     password: str
 
     class Config:
         orm_mode = True
+
 
 class CustomerRegistration(CustomerBase):
     national_id: int
@@ -69,16 +72,25 @@ def customer_registration(reg: CustomerRegistration, db: Session = Depends(get_d
     db_user = db_get_user_by_phone(db=db, phone_number=reg.phone_number)
     if db_user:
         raise HTTPException(status_code=400, detail="user already registered")
-    user = User(id=uuid.uuid4(), email=reg.phone_number, national_id=reg.national_id, password=reg.password)
+    user = User(
+        id=uuid.uuid4(),
+        email=reg.phone_number,
+        national_id=reg.national_id,
+        password=reg.password,
+    )
     return db_create_user(db=db, user=user)
+
 
 @app.post("/admin/registration")
 def admin_registration(reg: AdminBase, db: Session = Depends(get_db)):
     db_user = db_get_user_by_email(db=db, email=reg.email.__str__().lower())
     if db_user:
         raise HTTPException(status_code=400, detail="user already registered")
-    user = User(id=uuid.uuid4(), email=reg.email.__str__().lower(), password=reg.password)
+    user = User(
+        id=uuid.uuid4(), email=reg.email.__str__().lower(), password=reg.password
+    )
     return db_create_user(db=db, user=user)
+
 
 @app.post("/admin/login")
 def admin_login(reg: AdminBase, db: Session = Depends(get_db)):
@@ -88,10 +100,16 @@ def admin_login(reg: AdminBase, db: Session = Depends(get_db)):
     if db_user.password.__str__() != reg.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     encoded = jwt.encode(
-        {"exp": datetime.utcnow() + timedelta(seconds=1800), "role": db_user.user_type.__str__(), "uuid": str(db_user.id)},
-        SECRET_KEY, algorithm=ALGORITHM
+        {
+            "exp": datetime.utcnow() + timedelta(seconds=1800),
+            "role": db_user.user_type.__str__(),
+            "uuid": str(db_user.id),
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM,
     )
     return jsonable_encoder(encoded)
+
 
 @app.post("/customer/login")
 def customer_login(reg: CustomerBase, db: Session = Depends(get_db)):
@@ -101,13 +119,21 @@ def customer_login(reg: CustomerBase, db: Session = Depends(get_db)):
     if db_user.password.__str__() != reg.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     encoded = jwt.encode(
-        {"exp": datetime.utcnow() + timedelta(seconds=1800), "role": db_user.user_type.__str__(), "uuid": str(db_user.id)},
-        SECRET_KEY, algorithm=ALGORITHM
+        {
+            "exp": datetime.utcnow() + timedelta(seconds=1800),
+            "role": db_user.user_type.__str__(),
+            "uuid": str(db_user.id),
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM,
     )
     return jsonable_encoder(encoded)
 
+
 @app.get("/me")
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],  db: Session = Depends(get_db)):
+def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -125,8 +151,11 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],  db: Session
         raise credentials_exception
     return user
 
+
 @app.get("/verify-token")
-def verify_token(token: Annotated[str, Depends(oauth2_scheme)],  db: Session = Depends(get_db)):
+def verify_token(
+    token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)
+):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_uuid: UUID = payload.get("uuid")
