@@ -20,6 +20,10 @@ from db import (
     db_get_user,
     db_get_user_by_email,
     db_get_user_by_phone,
+    Payment,
+    create_payment,
+    get_all_customer_payments,
+    get_three_pending_tickets
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -57,6 +61,17 @@ class CustomerRegistration(CustomerBase):
     class Config:
         orm_mode = True
 
+#kutlo payments
+class PaymentBase(BaseModel):
+    payer_id: int
+    reference:str
+
+class PaymentProcessor(PaymentBase):
+    pass
+
+    
+
+
 
 @app.post("/customer/registration")
 def customer_registration(reg: CustomerRegistration, db: Session = Depends(get_db)):
@@ -65,9 +80,10 @@ def customer_registration(reg: CustomerRegistration, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail="user already registered")
     user = User(
         id=uuid.uuid4(),
-        email=reg.phone_number,
+        email=reg.email,
         national_id=reg.national_id,
         password=reg.password,
+        phone_number=reg.phone_number
     )
     return db_create_user(db=db, user=user)
 
@@ -158,3 +174,19 @@ def verify_token(
     if user is None:
         return {"valid": False}
     return {"valid": True}
+
+#payments 
+
+@app.post("/payments/payment")
+def make_payment(reg: PaymentProcessor, db: Session = Depends(get_db)):
+    db_user = db_get_user_by_phone(db=db, phone_number=reg.phone_number)
+    if db_user:
+        raise HTTPException(status_code=400, detail="user already registered")
+    user = User(
+        id=uuid.uuid4(),
+        email=reg.phone_number,
+        national_id=reg.national_id,
+        password=reg.password,
+    )
+    return db_create_user(db=db, user=user)
+
