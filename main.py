@@ -4,7 +4,7 @@ import datetime
 import re
 from hashlib import md5
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://bih-payment-hackathon-production-3adc.up.railway.app"
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
