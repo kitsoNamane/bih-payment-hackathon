@@ -85,9 +85,12 @@ def admin_registration(reg: AdminBase, db: Session = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail="user already registered")
     user = User(
-        id=uuid.uuid4(), email=reg.email.__str__().lower(), password=reg.password
+        id=uuid.uuid4(), email=reg.email.__str__().lower(), password=reg.password, user_type="admin"
     )
-    return db_create_user(db=db, user=user)
+    try:
+        return db_create_user(db=db, user=user)
+    except Exception:
+        raise HTTPException(status_code=500, detail="something went wrong")
 
 
 @app.post("/admin/login")
