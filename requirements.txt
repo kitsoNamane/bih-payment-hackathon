@@ -1,3 +1,6 @@
+python-dotenv
+watchdog
+Flask
 fastapi
 uvicorn
 pydantic

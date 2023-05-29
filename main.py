@@ -1,10 +1,77 @@
-import datetime
-from hashlib import md5
-from flask import Flask, redirect, request
-import re
-
+from flask import Flask, flash, session, render_template, request, redirect, url_for
 import requests
+import datetime
+import re
+from hashlib import md5
+
+API_URL = "http://127.0.0.1:8000"
+
 app = Flask(__name__)
+app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
+
+@app.route("/")
+def index():
+    return "<p>Customer Home Page</p>"
+
+@app.route("/registration/")
+def customer_redistration():
+    return "<p>Customer Registration</p>"
+
+@app.route("/login/")
+def customer_login():
+    return "<p>Customer Login</p>"
+
+@app.route("/admin/registration/", methods=("GET", "POST"))
+def admin_redistration():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        payload = {
+            "email": email,
+            "password": password
+        }
+        res = requests.post(f"{API_URL}/admin/registration", json=payload)
+        if res.status_code == 400:
+            flash("user already registered")
+        elif res.status_code != 200:
+            flash("something went wrong, registration failed")
+        else:
+            return redirect(url_for("admin_login"))
+
+    return render_template('auth/admin_register.html')
+
+@app.route("/admin/login/", methods=("GET", "POST"))
+def admin_login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        payload = {
+            "email": email,
+            "password": password
+        }
+        res = requests.post(f"{API_URL}/admin/login", json=payload)
+        if res.status_code == 401:
+            flash("invalid credentials")
+        elif res.status_code != 200:
+            flash("something went wrong, registration failed")
+        else:
+            session.clear()
+            session['token'] = res.text
+            return redirect(url_for("admin"))
+
+    return render_template('auth/admin_login.html')
+
+@app.route("/logout")
+def logout():
+    """Clear the current session, including the stored user id."""
+    session.clear()
+    return redirect(url_for("admin_login"))
+
+@app.route("/admin/")
+def admin():
+    return render_template('admin.html')
 
 def append_base_url_to_html(html_string, base_url):
     base_tag = f'<base href="{base_url}">'
@@ -14,7 +81,6 @@ def append_base_url_to_html(html_string, base_url):
 @app.route("/pay", methods=["GET"])
 def initiatePay():
     url = "https://secure.paygate.co.za/payweb3/initiate.trans"
-
     encryptionKey = "secret"
 
     PAYGATE_ID = "10011072130"
@@ -66,22 +132,16 @@ def initiatePay():
         url = "https://secure.paygate.co.za/payweb3/process.trans"
         response = requests.request("POST", url, headers=headers, data=map)
         return append_base_url_to_html(response.text, "https://secure.paygate.co.za/payweb3/")
-
     except Exception as e:
         print(e)
-
     return "Something went wrong, please try again later"
    
 @app.route("/notify")
 def notify():
-
     status = request.body.get("TRANSACTION_STATUS")
-
     # save request body to database here
-
     if(status == "1"):
         return redirect("/success")
-
     else: 
         return redirect("/failed")
     
