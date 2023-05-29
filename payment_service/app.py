@@ -40,6 +40,7 @@ def initiatePay():
     'TRANSACTION_DATE': TRANSACTION_DATE,
     'LOCALE': 'en-tn',
     'COUNTRY': 'BWA',
+    'NOTIFY_URL': 'https://my.notify.url/page',
     'EMAIL': EMAIL,
     }
 
@@ -92,6 +93,8 @@ def success():
 @app.route("/failed")
 def failed():
     return "Payment was unsuccessful"
+
+
 
 
 
