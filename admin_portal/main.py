@@ -57,11 +57,16 @@ def admin_login():
         else:
             session.clear()
             session['token'] = res.text
-            print(session['token'])
             return redirect(url_for("admin"))
 
     return render_template('auth/admin_login.html')
 
+@app.route("/logout")
+def logout():
+    """Clear the current session, including the stored user id."""
+    session.clear()
+    return redirect(url_for("admin_login"))
+
 @app.route("/admin/")
 def admin():
-    return "<p>Admin Homepage</p>"
+    return render_template('admin.html')
