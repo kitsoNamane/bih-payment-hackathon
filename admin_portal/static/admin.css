@@ -1,0 +1,125 @@
+
+
+header {
+    position: sticky;
+    top: 0;
+    background-color: #36454F;
+    padding: 12px;
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #FDFCFA;
+}
+
+.header_logo {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: row;
+  font-family:'Roboto', sans-serif;
+  align-items: center;
+  text-decoration: none;
+}
+
+
+.header_logout-button {
+  background-color: #ff0000;
+  color: #CC5500;
+  border: none;
+  padding: 5px 10px;
+  margin-right: 20px;
+  cursor: pointer;
+}
+
+.header_logout-button span {
+  color: white;
+}
+.body {
+    height: 100vh;
+    width: 80vw;
+    margin-left: 10vw;
+    margin-right: 10vw;
+    padding: 1rem;
+}
+
+.body_graphs {
+    display: flex;
+    flex: 40%;
+    flex-direction: row;
+    align-content: space-between;
+    gap: 4rem;
+    font-family:'Roboto', sans-serif;
+    color: #36454F;
+}
+
+.chart-container {
+    flex: 60%;
+}
+
+.form-container {
+    flex: 40%;
+    display: flex;
+    flex-direction: column;
+    gap:1rem;
+}
+
+.body_table {
+    display: flex;
+    flex: 60%;
+    flex-direction: column;
+    align-content: space-between;
+    padding-top: 1rem;
+    font-family:'Quicksand', sans-serif;
+    color: #36454F;
+}
+
+
+.form-item {
+    display: flex;
+    flex-direction: column;
+}
+
+h1 {
+    margin: 0;
+    font-family:'Roboto', sans-serif;
+    color: #36454F;
+}
+
+input {
+    height: 1.2rem;
+    color: #36454F;
+}
+
+.formbuilder-required {
+    color: #CC5500;
+}
+
+.form_submit-button {
+    height: 2.4rem;
+    color: white;
+    background-color: #0047AB;
+}
+
+.form-item select {
+    font-size: 2rem;
+    padding: 1rem;
+    color: #36454F;
+}
+
+.header_logo h1 {
+    color: white;
+}
+
+.header_logo h3 {
+    color: white;
+}
+
+.gridjs-search {
+  float: right;
+}

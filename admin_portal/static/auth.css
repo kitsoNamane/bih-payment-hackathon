@@ -1,0 +1,14 @@
+.body {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.body_form {
+    display: flex;
+    flex-direction: column;
+    align-content: space-between;
+    gap: 0.5rem;
+}
+

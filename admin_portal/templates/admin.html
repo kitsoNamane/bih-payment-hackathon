@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;500&family=Roboto:ital,wght@0,100;0,300;0,400;1,100&display=swap" rel="stylesheet">
+<link rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+{% endblock %}
+
+{% block header %}
+<a class="header_logo" href="#default">
+  <h1 class="logo_first">Bots</h1><h3 class="logo_second">pay</h3>
+</a>
+<a class="header_logout-button" href="{{ url_for('admin_login') }}">
+  <span class="material-symbols-outlined">logout</span>
+</a>
+{% endblock %}
+
+{% block body %}
+<div class="body_graphs">
+  <div class="chart-container">
+    <h1 access="false" id="control-3254732">Commulative Monthly Payment Statistics</h1>
+    <canvas id="line-chart"></canvas>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <form class="form-container">
+    <div class="form-title">
+      <h1 access="false" id="control-3254732">Create new Charge/Fee</h1>
+    </div>
+    <div class="form-item">
+      <label for="charge-fee-name">Service<span class="formbuilder-required">*</span></label>
+      <select class="charge-fee-name" required="required" aria-required="true">
+        <option value="Traffic ticket" selected="true" id="control-5762732-0">Traffic ticket</option>
+        <option value="option-2" id="control-5762732-1">Alimony</option>
+        <option value="Child Support" id="control-5762732-2">Child Support</option>
+        <option value="Garbage Collection" id="control-5762732-3">Garbage Collection</option>
+      </select>
+    </div>
+    <div class="form-item">
+      <label for="amount" >Amount<span class="formbuilder-required">*</span></label>
+      <input type="number" class="form_amount" name="amount" access="false" min="1" max="1000000" step="10" id="amount"
+        required="required" aria-required="true">
+    </div>
+    <div class="form-item">
+      <label for="national_id">Payer National ID<span
+          class="formbuilder-required">*</span></label>
+      <input type="text" class="form_payer-national-id" name="national_id" access="false" maxlength="9" id="national_id"
+        required="required" aria-required="true">
+    </div>
+    <div class="form-item">
+      <label for="due_date">Due Date<span class="formbuilder-required">*</span></label>
+      <input type="date" class="form_due-date" name="due_date" access="false" id="due_date" required="required"
+        aria-required="true">
+    </div>
+    <div class="form-item">
+      <label for="charge_type">Type<span class="formbuilder-required">*</span></label>
+      <select class="form_charge-type" name="charge_type" id="charge_type" required="required" aria-required="true">
+        <option value="Charge" selected="true" id="charge_type-0">Charge</option>
+        <option value="Fee" id="charge_type-1">Fee</option>
+        <option value="Garnish" id="charge_type-2">Garnish</option>
+      </select>
+    </div>
+    <div class="form-item">
+      <label for="charge_repeat">Repeat</label>
+      <select class="form_charge-repeat" name="charge_repeat" id="charge_repeat">
+        <option value="Once Off" selected="true" id="charge_repeat-0">Once Off</option>
+        <option value="Monthly" id="charge_repeat-1">Monthly</option>
+        <option value="Quarterly" id="charge_repeat-2">Quarterly</option>
+        <option value="Bi-Annualy" id="charge_repeat-3">Bi-Annualy</option>
+        <option value="Yearly" id="charge_repeat-4">Yearly</option>
+      </select>
+    </div>
+    <button type="submit" class="form_submit-button" name="submit" value="submit" id="submit">ADD NEW CHARGE</button>
+  </form>
+</div>
+<div class="body_table">
+  <h1 access="false" id="">Payment History</h1>
+  <div id="wrapper"></div>
+  <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+</div>
+
+<script>
+  const MONTHS = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+  ];
+
+  const COLORS = [
+    '#4dc9f6',
+    '#f67019',
+    '#f53794',
+    '#537bc4',
+    '#acc236',
+    '#166a8f',
+    '#00a950',
+    '#58595b',
+    '#8549ba'
+  ];
+
+  const CHART_COLORS = {
+    red: 'rgb(204,85,0)',
+    orange: 'rgb(255, 159, 64)',
+    yellow: 'rgb(255, 205, 86)',
+    green: 'rgb(80,200,120)',
+    blue: 'rgb(0, 71, 171)',
+    purple: 'rgb(153, 102, 255)',
+    grey: 'rgb(201, 203, 207)'
+  };
+
+  function months(config) {
+    var cfg = config || {};
+    var count = cfg.count || 12;
+    var section = cfg.section;
+    var values = [];
+    var i, value;
+
+    for (i = 0; i < count; ++i) {
+      value = MONTHS[Math.ceil(i) % 12];
+      values.push(value.substring(0, section));
+    }
+
+    return values;
+  }
+
+  const DATA_COUNT = 5;
+  const NUMBER_CFG = { count: DATA_COUNT, min: -100, max: 100 };
+
+  const labels = months({ count: DATA_COUNT });
+  const data = {
+    labels: labels,
+    datasets: [
+      {
+        label: 'Paid Successfully',
+        data: [10000, 23000, 45000, 39000, 60000],
+        borderColor: CHART_COLORS.greed,
+        backgroundColor: CHART_COLORS.green,
+      },
+      {
+        label: 'Pending',
+        data: [30000, 13000, 65000, 89000, 70000],
+        borderColor: CHART_COLORS.blue,
+        backgroundColor: CHART_COLORS.blue,
+      },
+      {
+        label: 'Failed',
+        data: [20000, 13000, 25000, 9000, 6000],
+        borderColor: CHART_COLORS.red,
+        backgroundColor: CHART_COLORS.red,
+      }
+    ]
+  };
+  new Chart("line-chart", {
+    type: 'bar',
+    data: data,
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  new gridjs.Grid({
+    columns: ["Activity", "Description", "Type", "Amount", "Reference", "Status", "Created Date", "Due Date"],
+    data: [
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Pending", "17-05-2023", "17-05-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Failed", "07-05-2023", "10-05-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Paid Successfully", "27-05-2023", "27-05-2023"],
+
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Paid Successfully", "27-05-2023", "27-04-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Pending", "27-05-2023", "27-04-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Failed", "27-05-2023", "27-04-2023"],
+      
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Pending", "27-05-2023", "27-04-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Paid Successfully", "27-05-2023", "27-04-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Failed", "27-05-2023", "27-04-2023"],
+
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Pending", "27-05-2023", "27-03-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Failed", "27-05-2023", "27-03-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Paid Successfully", "27-05-2023", "27-03-2023"],
+
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Pending", "27-02-2023", "27-02-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Failed", "14-02-2023", "14-02-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "1000", "", "Paid Successfully", "28-02-2023", "28-02-2023"],
+
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "30000", "", "Pending", "27-01-2023", "27-01-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "20000", "", "Failed", "02-01-2023", "20-01-2023"],
+      ["Add charge/fee", "Traffic fine", "Once Off Payment", "10000", "", "Paid Successfully", "07-01-2023", "17-01-2023"],
+    ],
+    search: true,
+    sort: true,
+    resizable: true,
+    fixedHeader: true,
+    style: {
+      table: {
+        'font-size': '1rem',
+      },
+      th: {
+      'background-color': '#36454F',
+      'color': 'white',
+      'text-align': 'center',
+      'height': '0.5rem'
+      },
+      td: {
+      'text-align': 'center'
+      }
+    },
+    pagination: {
+      limit: 5,
+      summary: false
+    },
+    language: {
+      'search': {
+        'placeholder': '🔍 Search...',
+      }
+    },
+    
+
+
+  }).render(document.getElementById("wrapper"));
+</script>
+
+{% endblock %}
