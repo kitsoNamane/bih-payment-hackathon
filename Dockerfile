@@ -6,4 +6,4 @@ COPY . .
 
 CMD pip3 install --no-cache-dir -r requirements.txt && ./run_project.sh
 
-EXPOSE 6000
+EXPOSE 6000 8000
