@@ -59,8 +59,7 @@ def generate_otp(phone_number: int):
 def whitelist_otp_phone_number(phone_number: int):
     try: 
         whitelist_phone_number(sms_client, phone_number)
-    except Exception as e:
-        print(e)
+    except Exception:
         raise HTTPException(status_code=400, detail="failed to whitelist phone number")
     return {"message": "successfully whitelisted phone number"}
 
@@ -70,7 +69,10 @@ def customer_registration(reg: CustomerRegistration, db: Session = Depends(get_d
     if db_user:
         raise HTTPException(status_code=400, detail="user already registered")
     user = User(id=uuid.uuid4(), email=reg.phone_number, national_id=reg.national_id, password=reg.password)
-    return db_create_user(db=db, user=user)
+    try:
+        return db_create_user(db=db, user=user)
+    except Exception:
+        raise HTTPException(status_code=500, detail="something went wrong")
 
 @app.post("/admin/registration")
 def admin_registration(reg: AdminBase, db: Session = Depends(get_db)):
@@ -82,7 +84,11 @@ def admin_registration(reg: AdminBase, db: Session = Depends(get_db)):
 
 @app.post("/admin/login")
 def admin_login(reg: AdminBase, db: Session = Depends(get_db)):
-    db_user = db_get_user_by_email(db=db, email=reg.email.__str__().lower())
+    try:
+        db_user = db_get_user_by_email(db=db, email=reg.email.__str__().lower())
+    except Exception:
+        raise HTTPException(status_code=500, detail="something went wrong")
+
     if db_user is None:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if db_user.password.__str__() != reg.password:
