@@ -1,6 +1,6 @@
 import datetime
 from hashlib import md5
-from flask import Flask, request
+from flask import Flask, redirect, request
 import re
 
 import requests
@@ -11,7 +11,7 @@ def append_base_url_to_html(html_string, base_url):
     modified_html = re.sub(r"<head[^>]*>", lambda m: m.group() + base_tag, html_string)
     return modified_html
 
-@app.route("/", methods=["GET"])
+@app.route("/pay", methods=["GET"])
 def initiatePay():
     url = "https://secure.paygate.co.za/payweb3/initiate.trans"
 
@@ -32,9 +32,6 @@ def initiatePay():
     # generate reference using the reference and the transaction date + serviceid
     REFERENCE = f"{REFERENCE}_{TRANSACTION_DATE}_{SERVICEID}"
 
-
-
-
     payload = {'PAYGATE_ID': '10011072130',
     'REFERENCE': REFERENCE,
     'AMOUNT': AMOUNT,
@@ -43,6 +40,7 @@ def initiatePay():
     'TRANSACTION_DATE': TRANSACTION_DATE,
     'LOCALE': 'en-tn',
     'COUNTRY': 'BWA',
+    'NOTIFY_URL': 'https://my.notify.url/page',
     'EMAIL': EMAIL,
     }
 
@@ -74,6 +72,34 @@ def initiatePay():
 
     return "Something went wrong, please try again later"
    
-     
+@app.route("/notify")
+def notify():
 
+    status = request.body.get("TRANSACTION_STATUS")
+
+    # save request body to database here
+
+    if(status == "1"):
+        return redirect("/success")
+
+    else: 
+        return redirect("/failed")
+    
+
+@app.route("/success")
+def success():
+    return "Payment was successful"
+
+@app.route("/failed")
+def failed():
+    return "Payment was unsuccessful"
+
+
+
+
+
+
+
+ 
+# http://127.0.0.1:5000/?reference=pako&amount=1000&serviceid=sea&email=chalebgwa.bc@gmail.com
 
