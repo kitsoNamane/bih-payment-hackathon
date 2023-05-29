@@ -1,0 +1,11 @@
+python-dotenv
+watchdog
+Flask
+fastapi
+uvicorn
+pydantic
+sqlalchemy
+alembic
+pyjwt
+psycopg2-binary
+twilio

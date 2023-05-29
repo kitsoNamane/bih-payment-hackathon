@@ -175,4 +175,8 @@ def verify_token(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, log_level="info")
+    import os
+    port = os.getenv("PORT")
+    if port is None:
+        uvicorn.run("main:app", host="0.0.0.0", port=8000, log_level="info")
+    uvicorn.run("main:app", host="0.0.0.0", port=int(port), log_level="info")
