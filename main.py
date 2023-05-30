@@ -14,12 +14,45 @@ def index():
     return "<p>Customer Home Page</p>"
 
 @app.route("/registration/")
-def customer_redistration():
-    return "<p>Customer Registration</p>"
+def customer_registration():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        payload = {
+            "email": email,
+            "password": password
+        }
+        res = requests.post(f"{API_URL}/customer/registration", json=payload)
+        if res.status_code == 400:
+            flash("user already registered")
+        elif res.status_code != 200:
+            flash("something went wrong, registration failed")
+        else:
+            return redirect(url_for("customer_login"))
+
+    return render_template('auth/customer_register.html')
+
 
 @app.route("/login/")
 def customer_login():
-    return "<p>Customer Login</p>"
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        payload = {
+            "email": email,
+            "password": password
+        }
+        res = requests.post(f"{API_URL}/customer/registration", json=payload)
+        if res.status_code == 400:
+            flash("user already registered")
+        elif res.status_code != 200:
+            flash("something went wrong, registration failed")
+        else:
+            return redirect(url_for("customer_login"))
+
+    return render_template('auth/customer_login.html')
 
 @app.route("/admin/registration/", methods=("GET", "POST"))
 def admin_registration():
@@ -63,7 +96,7 @@ def admin_login():
 
     return render_template('auth/admin_login.html')
 
-@app.route("/logout")
+@app.route("/logout/")
 def logout():
     """Clear the current session, including the stored user id."""
     session.clear()

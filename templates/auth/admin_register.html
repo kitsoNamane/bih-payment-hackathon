@@ -15,7 +15,7 @@
         <h1 class="logo_first">Bots</h1><h3 class="logo_second">pay</h3>
       </div>
       <form method="post" class="body_form">
-        <h2>Log In</h2>
+        <h2>Registration</h2>
         <label for="email" class="form_label">Email</label>
         <input name="email" id="email" class="form_input" required>
         <label for="password" class="form_label">Password</label>
@@ -26,7 +26,7 @@
         {% endfor %}
         <div class="form_is_registered">
           <p>Already registered?</P>
-          <a href="{{ url_for('admin_registration') }}">Log In</a>
+          <a href="{{ url_for('admin_login') }}">Log In</a>
          </div>
       </form>
   </div>
