@@ -1,4 +1,4 @@
-from sqlalchemy import UUID, Boolean, Column, Integer, String
+from sqlalchemy import UUID, Boolean, Column, Integer, String, Double
 from sqlalchemy.types import DateTime, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
@@ -22,10 +22,14 @@ class Payment(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     service = Column(String, index=True)
     reference = Column(String, unique=True, index=True)
-    due_date = Column(DateTime)
+    due_date = Column(DateTime, Index=True)
+    amount = Column(Double)
+    payment_type = Column(String)
     paid_status = Column(Boolean, index=True, default=False)
-    payer_id = Column(Integer, unique=False, index=True)
-    created_at = Column(DateTime)
+    payer_id = Column(Integer,index=True)
+    created_at = Column(DateTime, Index=True)
+    repeat = Column(String)
+
 
 
 def create_payment(db: Session, payment: Payment):

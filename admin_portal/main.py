@@ -36,7 +36,6 @@ def admin_redistration():
             flash("something went wrong, registration failed")
         else:
             return redirect(url_for("admin_login"))
-
     return render_template('auth/admin_register.html')
 
 @app.route("/admin/login/", methods=("GET", "POST"))
@@ -44,7 +43,6 @@ def admin_login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        
         payload = {
             "email": email,
             "password": password
@@ -70,3 +68,5 @@ def logout():
 @app.route("/admin/")
 def admin():
     return render_template('admin.html')
+
+

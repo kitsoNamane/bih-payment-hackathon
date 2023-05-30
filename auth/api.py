@@ -1,7 +1,7 @@
 from typing import Annotated
 from datetime import datetime, timedelta
 import uuid
-
+import random # kutlo import
 import jwt
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -10,7 +10,7 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import UUID
-from db import ALGORITHM, SECRET_KEY, SessionLocal, User, db_create_user, db_get_user, db_get_user_by_email, db_get_user_by_phone
+from db import ALGORITHM, SECRET_KEY, SessionLocal, User, db_create_user, db_get_user, db_get_user_by_email, db_get_user_by_phone, Payment, create_payment, get_all_customer_payments, get_all_payments_of_particular_service, get_three_pending_tickets
 from notifications import create_sms_client, send_top, whitelist_phone_number
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -48,6 +48,47 @@ class CustomerRegistration(CustomerBase):
 
     class Config:
         orm_mode = True
+
+
+class PaymentBase(BaseModel):
+    service: str
+    due_date: datetime
+    amount: float
+    payment_type: str
+    paid_status: bool
+    payer_id: int
+    created_at: datetime
+    repeat: str
+
+
+@app.post("/payment/create")
+def make_payment(pay: PaymentBase, db: Session = Depends(get_db)):
+    payment = Payment(service=pay.service, reference=random.randint(1,1000), duedate=pay.due_date, amount=pay.amount, payment_type=pay.payment_type, paid_status=pay.paid_status, payer_id=pay.payer_id, created_at=pay.created_at, repeat=pay.repeat )
+    try:
+        return create_payment(db=db, payment=payment)
+    except Exception:
+        raise HTTPException(status_code=500, detail="something went wrong")
+
+@app.post("/payment/get_all/{service}")
+def get_all_payments_of_service(pname:str, db:Session = Depends(get_db)):
+    try:
+        return get_all_payments_of_particular_service(db=db,payment_service=pname)
+    except Exception:
+        raise HTTPException(status_code=500, detail="something went wrong")
+
+@app.post("/payment/customer_all/{customerid}")
+def get_all_payments_for_this_customer(cus_id:int, db:Session = Depends(get_db)):
+    try:
+        return get_all_customer_payments(db=db, omang_id=cus_id)
+    except Exception:
+        raise HTTPException(status_code=500, detail="something went wrong")
+    
+@app.post("/payment/get_three/{customer_id}")
+def get_three_pending(cus_id:int, db:Session = Depends(get_db)):
+    try:
+        return get_three_pending_tickets(db=db, omang_id=cus_id)
+    except Exception:
+        raise HTTPException(status_code=500, detail="something went wrong")
 
 @app.post("/otp/send/{phone_number}")
 def generate_otp(phone_number: int):
