@@ -3,24 +3,42 @@ import requests
 import datetime
 import re
 from hashlib import md5
+import functools
 
 API_URL = "https://bih-payment-hackathon-production-3adc.up.railway.app"
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
+def customer_login_required(view):
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        if "token" not in session:
+            return redirect(url_for('customer_login'))
+        return view(**kwargs)
+    return wrapped_view
+
+def admin_login_required(view):
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        if "token" not in session:
+            return redirect(url_for('admin_login'))
+        return view(**kwargs)
+    return wrapped_view
+
 @app.route("/")
+@customer_login_required
 def index():
     return "<p>Customer Home Page</p>"
 
 @app.route("/registration/")
 def customer_registration():
     if request.method == 'POST':
-        email = request.form['email']
+        national_id = request.form['national_id']
         password = request.form['password']
         
         payload = {
-            "email": email,
+            "national_id": national_id,
             "password": password
         }
         res = requests.post(f"{API_URL}/customer/registration", json=payload)
@@ -37,22 +55,25 @@ def customer_registration():
 @app.route("/login/")
 def customer_login():
     if request.method == 'POST':
-        email = request.form['email']
+        national_id = request.form['national_id']
         password = request.form['password']
         
         payload = {
-            "email": email,
+            "national_id": national_id,
             "password": password
         }
-        res = requests.post(f"{API_URL}/customer/registration", json=payload)
-        if res.status_code == 400:
-            flash("user already registered")
+        res = requests.post(f"{API_URL}/customer/login", json=payload)
+        if res.status_code == 401:
+            flash("invalid credentials")
         elif res.status_code != 200:
             flash("something went wrong, registration failed")
         else:
-            return redirect(url_for("customer_login"))
+            session.clear()
+            session['token'] = res.text
+            return redirect(url_for("index"))
 
-    return render_template('auth/customer_login.html')
+    return render_template('auth/admin_login.html')
+
 
 @app.route("/admin/registration/", methods=("GET", "POST"))
 def admin_registration():
@@ -103,6 +124,7 @@ def logout():
     return redirect(url_for("admin_login"))
 
 @app.route("/admin/")
+@admin_login_required
 def admin():
     return render_template('admin.html')
 
