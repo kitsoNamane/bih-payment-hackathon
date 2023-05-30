@@ -16,8 +16,9 @@
       </div>
       <form method="post" class="body_form">
         <h2>Registration</h2>
-        <label for="email" class="form_label">Email</label>
-        <input name="email" id="email" class="form_input" required>
+      <label for="national_id" class="form_label">National ID</label>
+      <input type="text" class="customer-national-id" name="national_id" access="false" maxlength="9" id="national_id"
+        required="required" aria-required="true">
         <label for="password" class="form_label">Password</label>
         <input type="password" name="password" id="password" class="form_input" required>
         <button type="submit" class="form_submit-button" name="submit" value="submit" id="submit">Log In</button>
@@ -26,7 +27,7 @@
         {% endfor %}
         <div class="form_is_registered">
           <p>Already registered?</P>
-          <a href="{{ url_for('admin_login') }}">Log In</a>
+          <a href="{{ url_for('customer_login') }}">Log In</a>
          </div>
       </form>
   </div>
