@@ -1,19 +1,33 @@
 {% extends 'base.html' %}
 
 {% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;500&family=Roboto:ital,wght@0,100;0,300;0,400;1,100&display=swap" rel="stylesheet">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
 {% endblock %}
 
 {% block body %}
-  <form method="post" class="body_form">
-    <h1>Registration</h1>
-    <label for="email" class="form_label">Email</label>
-    <input name="email" id="email" class="form_input" required>
-    <label for="password" class="form_label">Password</label>
-    <input type="password" name="password" id="password" class="form_input" required>
-    <input type="submit" value="Register" class="form_submit-button">
-    {% for message in get_flashed_messages() %}
-      <div class="flash">{{ message }}</div>
-    {% endfor %}
-  </form>
+  <div class="login_container">
+      <div class="login_title">
+        <h1 class="logo_first">Bots</h1><h3 class="logo_second">pay</h3>
+      </div>
+      <form method="post" class="body_form">
+        <h2>Log In</h2>
+        <label for="email" class="form_label">Email</label>
+        <input name="email" id="email" class="form_input" required>
+        <label for="password" class="form_label">Password</label>
+        <input type="password" name="password" id="password" class="form_input" required>
+        <button type="submit" class="form_submit-button" name="submit" value="submit" id="submit">Log In</button>
+        {% for message in get_flashed_messages() %}
+          <div class="flash">{{ message }}</div>
+        {% endfor %}
+        <div class="form_is_registered">
+          <p>Already registered?</P>
+          <a href="{{ url_for('admin_registration') }}">Log In</a>
+         </div>
+      </form>
+  </div>
 {% endblock %}

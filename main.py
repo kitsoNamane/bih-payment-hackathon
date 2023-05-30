@@ -22,7 +22,7 @@ def customer_login():
     return "<p>Customer Login</p>"
 
 @app.route("/admin/registration/", methods=("GET", "POST"))
-def admin_redistration():
+def admin_registration():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
